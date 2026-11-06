@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">study_app</string>
+    <string name="delete">削除</string>
+    <string name="rename">名前を変更</string>
+    <string name="all_close_button_text">全て閉じる</string>
+    <string name="add_folder_button_text">フォルダーを追加</string>
+    <string name="cancel_button">キャンセル</string>
+    <string name="confirm_button">確定</string>
+    <string name="sentence_one_to_ten">1文字以上10文字以下で入力してください</string>
+    <string name="create_new_folder">フォルダーを新規作成</string>
+    <string name="create_new_text">テキストを新規作成</string>
+    <string name="do_you_want_to_delete_this_folder">このフォルダーを削除しますか?</string>
+    <string name="do_you_want_to_delete_this_text">このテキストを削除しますか?</string>
+    <string name="this_action_cannot_be_undone.">この操作は元に戻せません</string>
+    <string name="text">テキスト</string>
+    <string name="blank">穴埋め</string>
+    <string name="card">カード</string>
+
+    <string name="icon_save">save</string>
+    <string name="icon_text">text</string>
+    <string name="icon_edit">edit</string>
+    <string name="icon_run">run</string>
+</resources>
