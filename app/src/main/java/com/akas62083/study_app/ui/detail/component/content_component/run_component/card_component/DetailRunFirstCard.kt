@@ -23,12 +23,10 @@ import com.akas62083.study_app.ui.detail.TabStatus
 @Composable
 fun DetailRunFirstCard(
     modifier: Modifier = Modifier,
-    uiState: DetailUiState,
+    screenData: RunScreenData.Card,
     checkboxClicked: (CheckBoxAction) -> Unit,
     startButtonClicked: () -> Unit
 ) {
-    val textStruct = uiState.screen.textStruct as TextStruct.Card
-    val screenData = (uiState.screen.tabStatus as TabStatus.Run).screenData as RunScreenData.Card
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -45,7 +43,7 @@ fun DetailRunFirstCard(
                 )
                 Text("全てのヘッダー")
             }
-            textStruct.headers.forEach { header ->
+            screenData.headersKinds.forEach { header ->
                 if(header != "") {
                     Row {
                         Checkbox(
@@ -67,7 +65,7 @@ fun DetailRunFirstCard(
                 )
                 Text("全てのタグ")
             }
-            textStruct.tags.forEach { tag ->
+            screenData.tagsKinds.forEach { tag ->
                 if(tag != "") {
                     Row {
                         Checkbox(

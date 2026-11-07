@@ -1,8 +1,10 @@
 package com.akas62083.study_app.ui.detail.component.content_component
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.akas62083.study_app.domain.TextStruct
 import com.akas62083.study_app.ui.detail.CheckBoxAction
@@ -11,7 +13,7 @@ import com.akas62083.study_app.ui.detail.RunScreenData
 import com.akas62083.study_app.ui.detail.TabStatus
 import com.akas62083.study_app.ui.detail.component.content_component.run_component.DetailRunBlankScreen
 import com.akas62083.study_app.ui.detail.component.content_component.run_component.DetailRunCardScreen
-import com.akas62083.study_app.ui.detail.component.content_component.component.DetailRunErrorScreen
+import com.akas62083.study_app.ui.detail.component.content_component.component.DetailErrorScreen
 import com.akas62083.study_app.ui.detail.component.content_component.run_component.DetailRunTextScreen
 
 @Composable
@@ -23,7 +25,6 @@ fun DetailRunScreen(
     startButtonClicked: () -> Unit
 ) {
     Column(modifier) {
-        if(uiState.screen.textStruct !is TextStruct.Error) { // struct が null の可能性を加味する必要があるかもしれない。
             when(tabStatus.screenData) {
                 is RunScreenData.Text -> {
                     DetailRunTextScreen(
@@ -48,12 +49,11 @@ fun DetailRunScreen(
                         tabStatus = tabStatus.screenData
                     )
                 }
+                is RunScreenData.Error -> {
+                    DetailErrorScreen(
+                        tabStatus = tabStatus
+                    )
+                }
             }
-        } else {
-            DetailRunErrorScreen(
-                uiState = uiState,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
     }
 }

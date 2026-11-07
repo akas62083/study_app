@@ -38,7 +38,7 @@ fun DetailRunCardScreen(
                 CardStatus.FIRST -> {
                     DetailRunFirstCard(
                         modifier = Modifier.fillMaxSize(),
-                        uiState = uiState,
+                        screenData = tabStatus,
                         checkboxClicked = checkboxClicked,
                         startButtonClicked = startButtonClicked
                     )

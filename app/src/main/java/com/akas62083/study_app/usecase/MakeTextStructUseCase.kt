@@ -35,7 +35,7 @@ class MakeTextStructUseCase @Inject constructor(
                         val cardText: List<String> = text.split(":").map {
                             it.replace(" ", "").replace("　", "")
                         }
-                        tags += cardText[1].split(',').toSet() + ""
+                        tags += cardText[1].split(',').toSet()
                         if(cardText[0] == "") {
                             header = cardText[2]
                             headers += header
@@ -44,7 +44,7 @@ class MakeTextStructUseCase @Inject constructor(
                         }
                         cards.add(CardTextStruct(
                             question = cardText[0],
-                            tags = cardText[1].split(',').toSet() + headerTags,
+                            tags = cardText[1].split(',').toSet() + headerTags + "",
                             answer = cardText[2],
                             header = header
                         ))

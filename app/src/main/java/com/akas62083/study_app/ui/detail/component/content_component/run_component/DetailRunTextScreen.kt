@@ -14,8 +14,4 @@ fun DetailRunTextScreen(
     modifier: Modifier = Modifier,
     tabStatus: RunScreenData.Text
 ) {
-    val textStruct = uiState.screen.textStruct as TextStruct.Text
-    Column(modifier) {
-        BlankTextStruct.Text(text = textStruct.text)
-    }
 }

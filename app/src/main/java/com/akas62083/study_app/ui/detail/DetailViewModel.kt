@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.akas62083.study_app.Route
 import com.akas62083.study_app.data.text.TextEntity
+import com.akas62083.study_app.domain.CardTextStruct
+import com.akas62083.study_app.domain.TextStruct
 import com.akas62083.study_app.domain.TextType
 import com.akas62083.study_app.usecase.ChangeTextUseCase
 import com.akas62083.study_app.usecase.GetTextByIdUseCase
@@ -31,7 +33,9 @@ class DetailViewModel @Inject constructor(
     private val makeTextStructUseCase: MakeTextStructUseCase
 ): ViewModel() {
     private val args = savedStateHandle.toRoute<Route.DETAIL>()
-    private val _screenState = MutableStateFlow(DetailScreenState())
+    private val _screenState = MutableStateFlow(DetailScreenState(
+        tabStatus = TabStatus.UnLoaded
+    ))
 
 
     val uiState: StateFlow<DetailUiState> =
@@ -40,25 +44,32 @@ class DetailViewModel @Inject constructor(
             getTextByIdUseCase(args.id)
         ) { screenState, textEntity ->
             DetailUiState(
-                screen = screenState.copy(text = screenState.text ?: textEntity),
-                text = textEntity
+                screen = screenState.copy(
+                    text = screenState.text ?: textEntity,
+                    tabStatus = if(screenState.tabStatus is TabStatus.UnLoaded) TabStatus.Edit(EditScreenData.Card) else screenState.tabStatus,
+                )
             )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = DetailUiState()
+            initialValue = DetailUiState(
+                screen = DetailScreenState(
+                    tabStatus = TabStatus.UnLoaded
+                )
+            )
         )
 
     fun onEvent(event: DetailEvent) {
         when(event) {
-            is DetailEvent.ChangeText -> { changeText(event.text) }
             is DetailEvent.TabClicked -> {
                 saveText()
-                _screenState.update { cs ->
-                    cs.copy(textStruct = makeTextStructUseCase(uiState.value.screen.text ?: TextEntity(folderId = 0)))
-                }
                 tabClicked(event.tabType)
             }
+            
+            // Edit
+            is DetailEvent.ChangeText -> { changeText(event.text) }
+
+            // Run
             is DetailEvent.CheckBoxClicked -> {
                 checkBoxClicked(event.checkBoxAction)
             }
@@ -75,17 +86,42 @@ class DetailViewModel @Inject constructor(
         }
     }
     private fun tabClicked(tabType: TabType) {
-        _screenState.update {
-            it.copy(
+        val textStruct = makeTextStructUseCase(uiState.value.screen.text ?: TextEntity(folderId = 0))
+        _screenState.update { cs ->
+            cs.copy(
                 tabStatus = when(tabType) {
                     TabType.SAVE -> { TabStatus.Save }
-                    TabType.TEXT -> { TabStatus.Text }
-                    TabType.EDIT -> { TabStatus.Edit }
+                    TabType.TEXT -> { TabStatus.Text(
+                        when(textStruct) {
+                            is TextStruct.Text -> { TextScreenData.Text }
+                            is TextStruct.Card -> { TextScreenData.Card }
+                            is TextStruct.Blank -> { TextScreenData.Blank }
+                            is TextStruct.Error -> { TextScreenData.Error }
+                        }
+                    ) }
+                    TabType.EDIT -> { TabStatus.Edit(
+                        when(uiState.value.text!!.textType) {
+                            TextType.BLANK -> { EditScreenData.Blank }
+                            TextType.CARD -> { EditScreenData.Card }
+                            TextType.TEXT -> { EditScreenData.Text }
+                        }
+                    ) }
                     TabType.RUN -> { TabStatus.Run(
-                        screenData = when(uiState.value.screen.text?.textType ?: TextType.TEXT) {
-                            TextType.TEXT -> { RunScreenData.Text }
-                            TextType.BLANK -> { RunScreenData.Blank }
-                            TextType.CARD -> { RunScreenData.Card(CardStatus.FIRST) }
+                        screenData = when(textStruct) {
+                            is TextStruct.Text -> { RunScreenData.Text }
+                            is TextStruct.Card -> { RunScreenData.Card(
+                                tags = textStruct.tags,
+                                headers = textStruct.headers,
+                                problemSet = textStruct.text,
+                                tagsKinds = textStruct.tags,
+                                headersKinds = textStruct.headers,
+                                status = CardStatus.FIRST
+                            ) }
+                            is TextStruct.Blank -> { RunScreenData.Blank }
+                            is TextStruct.Error -> { RunScreenData.Error(
+                                code = textStruct.code,
+                                line = textStruct.line
+                            ) }
                         }
                     ) }
                 }
@@ -152,9 +188,68 @@ class DetailViewModel @Inject constructor(
                     cs.copy(tabStatus = tabStatus.copy(screenData = screenData.copy(ura = !screenData.ura)))
                 }
             }
+            is CheckBoxAction.Unknown -> {
+                _screenState.update { cs ->
+                    cs.copy(tabStatus = tabStatus.copy(screenData = screenData.copy(unknown = !screenData.unknown)))
+                }
+            }
+
         }
     }
     fun startSolving() {
+        val screenData = (uiState.value.screen.tabStatus as TabStatus.Run).screenData as RunScreenData.Card
+        val result: MutableSet<CardTextStruct> = mutableSetOf()
+        val selectedTags = if(screenData.allTags) screenData.tagsKinds else screenData.tags
+        val selectedHeaders = if(screenData.allHeaders) screenData.headersKinds else screenData.headers
+
+        screenData.problemSet.forEach { card ->
+            if(card.tags.any { it in selectedTags } || card.header in selectedHeaders) {
+                if(screenData.omote) {
+                    result.add(CardTextStruct(
+                        question = card.question,
+                        answer = card.answer,
+                        tags = card.tags,
+                        header = card.header
+                    ))
+                }
+                if(screenData.ura) {
+                    result.add(CardTextStruct(
+                        question = card.answer,
+                        answer = card.question,
+                        tags = card.tags,
+                        header = card.header
+                    ))
+                }
+            }
+        }
+        result += screenData.unknowns
+        val resultList = result.toMutableList()
+        if(screenData.shuffle) resultList.shuffle()
+
+        _screenState.update { cs ->
+            cs.copy(
+                tabStatus = when(cs.tabStatus) {
+                    is TabStatus.Run -> {
+                        when(cs.tabStatus.screenData) {
+                            is RunScreenData.Card -> {
+                                cs.tabStatus.copy(
+                                    screenData = when(cs.tabStatus.screenData) {
+                                        is RunScreenData.Card -> { cs.tabStatus.screenData.copy(
+                                            unknowns = emptyList(),
+                                            problemsList = resultList,
+                                            status = CardStatus.SOLVING,
+                                        )}
+                                        else -> { cs.tabStatus.screenData }
+                                    }
+                                )
+                            }
+                            else -> { cs.tabStatus }
+                        }
+                    }
+                    else -> { cs.tabStatus }
+                }
+            )
+        }
 
     }
 }
